@@ -310,10 +310,14 @@ def store_draft(db, user_id, profile, values):
 
 
 def show_assessment(item):
+    created = item.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
     result = {"id": item.id, "profile": item.profile.name, "profile_id": item.profile_id,
-              "overall_fit": item.overall_fit, "scores": item.scores, "created_at": item.created_at}
+              "overall_fit": item.overall_fit, "scores": item.scores, "created_at": created}
     if item.scores and item.scores[0].get("method") == "5.5.2-v1":
         result.update(questionnaire.summarize(item.scores))
+        result["profile"] = item.scores[0].get("profile_name", result["profile"])
         result.update(method="5.5.2-v1", catalog_version=item.scores[0]["catalog_version"])
     else:
         result["method"] = "historico-40-60"
@@ -487,7 +491,7 @@ def create_assessment(payload: AssessmentRequest, db: Db, user: CurrentUser):
         sources = {"cv": 100 if mention else None, "self": declared.get(key),
                    "quiz": attempt.scores.get(key) if attempt else None}
         row = questionnaire.diagnostic_score(requirement, sources)
-        row.update(catalog_version=version, quiz_attempt_id=attempt.id if attempt else None,
+        row.update(catalog_version=version, profile_name=profile.name, quiz_attempt_id=attempt.id if attempt else None,
                    quiz_version=attempt.version if attempt else None,
                    verified_at=attempt.created_at.isoformat() if attempt and sources["quiz"] is not None else None,
                    cv_source=mention.get("source") if mention else None, cv_evidence_id=evidence.id if mention else None)

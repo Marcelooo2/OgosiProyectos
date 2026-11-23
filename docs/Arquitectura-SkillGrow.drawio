@@ -766,7 +766,7 @@
         <mxCell id="cloud-3" value="Despliegue de la aplicación y sus datos" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=40;fontStyle=1;fontColor=#162D3D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
           <mxGeometry x="48" y="62" width="1344" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="cloud-4" value="Topología de referencia para publicar un servicio de contenedor y conservar los datos en una instancia PostgreSQL independiente." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=20;fontStyle=0;fontColor=#334D5D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
+        <mxCell id="cloud-4" value="Entorno publicado en Render. El servicio web y la base PostgreSQL se crean desde el repositorio privado de GitHub." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=20;fontStyle=0;fontColor=#334D5D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
           <mxGeometry x="48" y="133" width="1344" height="32" as="geometry" />
         </mxCell>
         <mxCell id="cloud-5" value="" style="rounded=0;arcSize=8;html=0;whiteSpace=wrap;fillColor=#ADC3CC;strokeColor=none;strokeWidth=1.5;dashed=0;" vertex="1" parent="1">
@@ -916,13 +916,13 @@
         <mxCell id="cloud-45" value="" style="rounded=0;arcSize=8;html=0;whiteSpace=wrap;fillColor=#99AEB7;strokeColor=none;strokeWidth=1.5;dashed=0;" vertex="1" parent="1">
           <mxGeometry x="711" y="747" width="681" height="2" as="geometry" />
         </mxCell>
-        <mxCell id="cloud-46" value="Verificación del despliegue" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#162D3D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
+        <mxCell id="cloud-46" value="Despliegue verificado el 23/11/2026" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#162D3D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
           <mxGeometry x="711" y="759" width="681" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="cloud-47" value="La URL del repositorio y una comprobación de /api/health en el dominio" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontStyle=0;fontColor=#334D5D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
+        <mxCell id="cloud-47" value="Marcelooo2/OgosiProyectos · rama main · PostgreSQL skillgrow-ogosi-db" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontStyle=0;fontColor=#334D5D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
           <mxGeometry x="711" y="794" width="681" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="cloud-48" value="publicado identifican una instancia concreta de esta topología." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontStyle=0;fontColor=#334D5D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
+        <mxCell id="cloud-48" value="skillgrow-ogosi.onrender.com/api/health respondió HTTP 200." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=17;fontStyle=0;fontColor=#334D5D;spacing=0;strokeColor=none;fillColor=none;resizable=1;" vertex="1" parent="1">
           <mxGeometry x="711" y="819" width="681" height="24" as="geometry" />
         </mxCell>
       </root>

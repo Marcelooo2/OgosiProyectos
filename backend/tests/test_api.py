@@ -1,8 +1,3 @@
-import os
-
-os.environ["DATABASE_URL"] = "sqlite:///./test_skillgrow.db"
-os.environ["JWT_SECRET"] = "test-secret"
-
 from fastapi.testclient import TestClient
 
 from app.main import app
