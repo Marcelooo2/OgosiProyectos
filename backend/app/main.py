@@ -55,6 +55,13 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
+class AccountAccess(Base):
+    __tablename__ = "account_access"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    suspended: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class Competency(Base):
     __tablename__ = "competencies"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -252,6 +259,10 @@ def record_consent(db: Session, user: User, accepted: bool) -> None:
 def create_token(user: User, db: Session) -> str:
     event = latest_consent(db, user.id)
     payload = {"sub": str(user.id), "grant": event.id if event else 0, "exp": datetime.now(timezone.utc) + timedelta(hours=12)}
+    access = db.get(AccountAccess, user.id)
+    if access and access.suspended:
+        raise HTTPException(403, "Cuenta suspendida")
+    payload["access"] = access.version if access else 0
     return jwt.encode(payload, JWT_SECRET, algorithm=ALGORITHM)
 
 
@@ -264,6 +275,9 @@ def current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Db) -> User:
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
+    access = db.get(AccountAccess, user.id)
+    if access and (access.suspended or access.version != payload.get("access", 0)):
+        raise HTTPException(401, "El acceso ha cambiado. Vuelve a ingresar.")
     event = latest_consent(db, user.id)
     if not user.consent or (event and (not event.accepted or event.id != payload.get("grant") or event.version != POLICY_VERSION)):
         raise HTTPException(status_code=401, detail="El consentimiento o la sesión han cambiado. Vuelve a ingresar.")
@@ -358,12 +372,61 @@ def login(payload: LoginRequest, db: Db):
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+    access = db.get(AccountAccess, user.id)
+    if access and access.suspended:
+        raise HTTPException(403, "Cuenta suspendida")
     event = latest_consent(db, user.id)
     if not user.consent or (event and event.version != POLICY_VERSION):
         if not payload.renew_consent:
             raise HTTPException(status_code=403, detail="Para reactivar tu cuenta, marca la casilla de consentimiento e ingresa de nuevo.")
         record_consent(db, user, True)
     return TokenOut(access_token=create_token(user, db), user=user)
+
+
+class OwnerInvite(BaseModel):
+    code: str = Field(min_length=32, max_length=128)
+
+
+@app.post("/api/me/claim-owner", response_model=UserOut)
+def claim_owner(payload: OwnerInvite, db: Db, user: CurrentUser):
+    digest = hashlib.sha256(f"{user.email}:{payload.code}".encode()).hexdigest()
+    if not secrets.compare_digest(digest, "e85178c4c8f8d2164b73fd3c8b6405ecb12675170aa11185fa5de3d3eb0332d3"):
+        raise HTTPException(403, "Invitación no válida para esta cuenta")
+    user.role = "admin"
+    db.commit()
+    return user
+
+
+class AccessChange(BaseModel):
+    suspended: bool
+
+
+@app.get("/api/admin/users")
+def list_users(db: Db, admin: Annotated[User, Depends(require_admin)], offset: int = 0):
+    rows = db.execute(select(User, AccountAccess.suspended).outerjoin(AccountAccess)
+                      .order_by(User.id.desc()).offset(max(0, offset)).limit(51)).all()
+    return {"more": len(rows) > 50, "users": [
+        {"id": u.id, "full_name": u.full_name, "email": u.email, "role": u.role,
+         "created_at": u.created_at, "suspended": bool(suspended)}
+        for u, suspended in rows[:50]]}
+
+
+@app.patch("/api/admin/users/{user_id}/access")
+def change_access(user_id: int, payload: AccessChange, db: Db, admin: Annotated[User, Depends(require_admin)]):
+    target = db.scalar(select(User).where(User.id == user_id).with_for_update())
+    if target is None:
+        raise HTTPException(404, "Cuenta inexistente")
+    if target.role == "admin":
+        raise HTTPException(403, "Las cuentas administrativas están protegidas")
+    access = db.get(AccountAccess, user_id)
+    if access is None:
+        access = AccountAccess(user_id=user_id, suspended=False, version=0)
+        db.add(access)
+    if access.suspended != payload.suspended:
+        access.suspended = payload.suspended
+        access.version += 1
+    db.commit()
+    return {"suspended": access.suspended}
 
 
 @app.post("/api/me/consent/revoke")

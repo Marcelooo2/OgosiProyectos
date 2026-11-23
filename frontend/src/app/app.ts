@@ -8,6 +8,7 @@ import { CatalogEditor } from './catalog-editor';
 
 type View = 'inicio' | 'perfil' | 'diagnostico' | 'ruta' | 'seguimiento' | 'admin';
 interface User { id: number; email: string; full_name: string; role: string; consent: boolean; }
+interface ManagedAccount extends User { created_at: string; suspended: boolean; }
 interface Requirement { competency_id: number; name: string; required_level: number; weight: number; }
 interface JobProfile { id: number; name: string; description: string; seniority: string; requirements: Requirement[]; }
 interface Resource { progress_id: number | null; resource_id: number; priority?: number; gap?: number; modality?: string; title: string; provider: string; url: string; type: string; competency: string; percent: number; completed: boolean; }
@@ -30,7 +31,15 @@ export class App {
     .sort((a, b) => (b.priority ?? b.gap ?? 0) - (a.priority ?? a.gap ?? 0))[0]);
   completedCount = computed(() => this.resources().filter(r => r.completed).length);
 
-  constructor() { if (this.token()) this.bootstrap(); }
+  private ownerInvite = '';
+  constructor() {
+    const invite = new URLSearchParams(location.hash.slice(1)).get('activar');
+    if (invite) {
+      this.ownerInvite = invite;
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+    if (this.token()) this.bootstrap();
+  }
   private headers() { return new HttpHeaders({ Authorization: `Bearer ${this.token()}` }); }
   private friendlyError(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
@@ -50,6 +59,16 @@ export class App {
     });
   }
   bootstrap() {
+    if (this.ownerInvite) {
+      this.http.post<User>(this.api + '/me/claim-owner', {code:this.ownerInvite}, {headers:this.headers()}).subscribe({
+        next: account => {
+          this.ownerInvite = '';
+          this.user.set(account);
+          localStorage.setItem('skillgrow_user', JSON.stringify(account));
+          this.navigate('admin');
+        }, error: e => this.error.set(this.friendlyError(e))
+      });
+    }
     this.loadProfiles(); this.loadProgress();
     this.http.get<Diagnostic>(`${this.api}/assessments/latest`, { headers: this.headers() }).subscribe({ next: value => { this.assessment.set(value); this.loadRecommendations(); }, error: () => void 0 });
   }
@@ -88,7 +107,23 @@ export class App {
   updateProgress(item: Resource, percent: number | string) {
     this.http.patch<any>(`${this.api}/progress/${item.progress_id}`, { percent: Number(percent) }, { headers: this.headers() }).subscribe({ next: value => { this.resources.update(list => list.map(r => r.progress_id === item.progress_id ? { ...r, percent: value.percent, completed: value.completed } : r)); this.toast.set(value.notice); }, error: e => this.error.set(this.friendlyError(e)) });
   }
-  navigate(target: View) { this.view.set(target); this.menuOpen.set(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  accounts = signal<ManagedAccount[]>([]);
+  moreAccounts = signal(false);
+  accountOffset = 0;
+  loadAccounts(offset = 0) {
+    this.http.get<{users: ManagedAccount[]; more:boolean}>(this.api + '/admin/users',
+      {headers:this.headers(), params:{offset}}).subscribe({
+      next: page => {this.accountOffset = offset; this.accounts.set(page.users); this.moreAccounts.set(page.more);},
+      error: e => this.error.set(this.friendlyError(e))
+    });
+  }
+  changeAccess(id:number, email:string, suspended:boolean) {
+    if (!window.confirm((suspended ? '¿Suspender el acceso de ' : '¿Reactivar el acceso de ') + email + '?')) return;
+    this.http.patch(this.api + '/admin/users/' + id + '/access', {suspended}, {headers:this.headers()}).subscribe({
+      next: () => this.loadAccounts(this.accountOffset), error: e => this.error.set(this.friendlyError(e))
+    });
+  }
+  navigate(target: View) { if (target === 'admin') this.loadAccounts(); this.view.set(target); this.menuOpen.set(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   logout() { localStorage.removeItem('skillgrow_token'); localStorage.removeItem('skillgrow_user'); this.token.set(''); this.user.set(null); this.assessment.set(null); this.resources.set([]); this.suggestions.set([]); this.detected.set([]); this.selectedProfile.set(null); this.profiles.set([]); this.view.set('inicio'); this.consent = false; this.password = ''; this.toast.set(''); this.error.set(''); this.modality = ''; }
 }
 
