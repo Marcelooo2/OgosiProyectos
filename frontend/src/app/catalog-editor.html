@@ -1,0 +1,43 @@
+@if (catalog(); as data) {
+  <section><strong>Catálogo vigente · v{{ data.version }}</strong>
+    <nav>@for (k of kinds; track k) { <button (click)="select(k)" [disabled]="k===kind">{{ labels[k] }}</button> }</nav>
+    <h3>{{ labels[kind] }}</h3>
+    <ul>@for (item of data[kind]; track item.id) {
+      <li>{{ item.name || item.title }} {{ item.archived ? '· Archivado' : '' }}
+        <button (click)="edit(item)">Editar</button>
+        <button [disabled]="busy()" (click)="status(item)">{{item.archived?'Restaurar':'Archivar'}}</button></li>
+    }</ul><button (click)="edit()">Nueva ficha</button>
+  </section>
+  <section><h3>{{ entry.id ? 'Editar ficha' : 'Crear ficha' }}</h3>
+    @if (kind!=='resources') { <label>Nombre<input [(ngModel)]="entry.name" maxlength="120"></label> }
+    @if (kind==='competencies') {
+      <label>Categoría<select [(ngModel)]="entry.category"><option>Técnica</option><option>Blanda</option></select></label>
+      <label>Sinónimos separados por comas<input [(ngModel)]="aliases"></label>
+    } @else if (kind==='profiles') {
+      <label>Descripción<textarea [(ngModel)]="entry.description"></textarea></label>
+      <label>Experiencia requerida<input [(ngModel)]="entry.seniority"></label>
+      @for (r of requirements; track $index; let i=$index) {
+        <div class="fields"><label>Competencia<select [(ngModel)]="r.competency_id">
+          @for(s of data.competencies;track s.id){@if(!s.archived){<option [ngValue]="s.id">{{s.name}}</option>}}
+        </select></label><label>Nivel (1–5)<input type="number" min="1" max="5" [(ngModel)]="r.required_level"></label>
+        <label>Peso (1–3)<input type="number" min="1" max="3" [(ngModel)]="r.weight"></label>
+        <button (click)="requirements.splice(i,1)">Quitar</button></div>
+      }<button (click)="addRequirement()">Añadir requisito</button>
+    } @else {
+      <label>Título<input [(ngModel)]="entry.title"></label>
+      <label>Competencia<select [(ngModel)]="entry.competency_id">@for(s of data.competencies;track s.id){@if(!s.archived){<option [ngValue]="s.id">{{s.name}}</option>}}</select></label>
+      <div class="fields"><label>Proveedor<input [(ngModel)]="entry.provider"></label><label>Tipo de recurso<input [(ngModel)]="entry.resource_type"></label></div>
+      <label>Enlace HTTPS<input type="url" [(ngModel)]="entry.url"></label>
+      <div class="fields"><label>Modalidad<select [(ngModel)]="entry.modality"><option>En línea</option><option>Presencial</option><option>Híbrida</option></select></label>
+      <label>Horas<input type="number" min="0.1" [(ngModel)]="entry.hours"></label>
+      <label>Nivel de entrada (0–5)<input type="number" min="0" max="5" [(ngModel)]="entry.entry_level"></label></div>
+      <div class="fields"><label>Disponible desde<input type="date" [(ngModel)]="entry.starts_on"></label><label>Disponible hasta<input type="date" [(ngModel)]="entry.ends_on"></label></div>
+    }
+    <button (click)="publish()" [disabled]="busy()">Publicar ficha</button>
+  </section>
+  <section><h3>Extracción semántica</h3><label>Similitud mínima de BETO (0–1)<input type="number" min="0" max="1" step=".01" [(ngModel)]="threshold"></label><button (click)="parameters()" [disabled]="busy()">Guardar umbral</button></section>
+  <section><h3>Historial de publicaciones</h3><ul>@for(r of history();track r.version){
+    <li>v{{r.version}} · {{r.date.slice(0,10)}} · {{r.action}} · {{r.kind}} #{{r.item_id}}</li>
+  } @empty {<li>El catálogo inicial aún no tiene cambios.</li>}</ul></section>
+}
+@if(message()){<p class="message" role="status">{{message()}}</p>}

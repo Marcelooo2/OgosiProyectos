@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: skillgrow-ogosi
+    runtime: docker
+    plan: free
+    region: virginia
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: skillgrow-ogosi-db
+          property: connectionString
+databases:
+  - name: skillgrow-ogosi-db
+    plan: free
+    region: virginia
+    postgresMajorVersion: "16"
+    ipAllowList: []

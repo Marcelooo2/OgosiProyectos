@@ -1,0 +1,4 @@
+:root { --purple:#6252d2; --ink:#29263a; --muted:#777287; --line:#e8e6ef; --bg:#f7f7fa; font-family:'DM Sans',Arial,sans-serif; color-scheme:light; }
+* { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-width:320px; min-height:100vh; background:var(--bg); }
+h1,h2,h3,h4,.brand { font-family:'Manrope','DM Sans',sans-serif; } button,input,textarea,select { font-family:inherit; }
+

@@ -1,0 +1,12 @@
+.git
+**/.git
+**/.env
+**/*.db
+**/.venv
+**/.angular
+**/.pytest_cache
+**/__pycache__
+**/node_modules
+**/.vscode
+**/dist
+docs

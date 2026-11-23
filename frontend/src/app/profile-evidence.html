@@ -1,0 +1,57 @@
+@if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+@if (feedback()) { <p class="feedback" role="status">{{ feedback() }}</p> }
+@if (sheet(); as info) {
+  <section>
+    <h3>Competencias de tu CV</h3>
+    <p>Sube un PDF con texto, un DOCX o un TXT de hasta 5 MB. SkillGrow guarda el nombre de archivo y las menciones de competencias. El texto se procesa en memoria.</p>
+    <input type="file" accept=".pdf,.docx,.txt" aria-label="Cargar CV" [disabled]="busy()" (change)="upload($event)">
+    @if (cv()?.evidence_id) {
+      <p><strong>{{ cv()?.filename }}</strong></p>
+      @for (item of cv()!.detected; track item.competency_id) {
+        <label><input type="checkbox" [(ngModel)]="item.confirmed">{{ item.name }} <small>{{ item.source }}</small></label>
+      } @empty { <p>El catálogo no reconoce menciones en este archivo. Puedes declarar las competencias del perfil a continuación.</p> }
+      @if (cv()!.detected.length) {
+        <button [disabled]="busy()" (click)="confirmCv()">Guardar menciones confirmadas</button>
+      }
+    }
+  </section>
+  <section>
+    <h3>Tu nivel declarado</h3>
+    <p>Elige un nivel de 0 a 5 por competencia. Deja el campo vacío si prefieres omitirla. El valor 0 significa que declaras un nivel inicial.</p>
+    @for (req of profile.requirements; track req.competency_id) {
+      <label class="level">{{ req.name }} <input type="number" min="0" max="5" step=".25" placeholder="—" [(ngModel)]="levels[req.name]"></label>
+    }
+    <button [disabled]="busy() || !validLevels()" (click)="saveLevels()">Guardar autodeclaración</button>
+  </section>
+  <section>
+    <h3>Cuestionario de {{ profile.name }}</h3>
+    @if (info.latest; as attempt) {
+      <p>Último intento corregido, número {{ attempt.id }}.</p>
+      <ul>@for (req of profile.requirements; track req.competency_id) {
+        @if (attempt.scores[req.competency_id] !== undefined) {
+          <li>{{ req.name }} · {{ attempt.scores[req.competency_id] / 20 }} de 5</li>
+        }
+      }</ul>
+    }
+    @if (info.uncovered.length) { <p>Competencias sin preguntas disponibles: {{ info.uncovered.join(', ') }}.</p> }
+    @if (info.items.length) {
+      <details [open]="!info.latest">
+        <summary>{{ info.latest ? 'Resolver un nuevo intento' : 'Responder las preguntas' }}</summary>
+        @for (q of info.items; track q.id; let position = $index) {
+          <fieldset><legend>{{ position + 1 }}. {{ q.prompt }}</legend>
+            @for (choice of q.choices; track $index; let index = $index) {
+              <label><input type="radio" [name]="'q-' + q.id" [value]="index" [(ngModel)]="answers[q.id]">{{ choice }}</label>
+            }
+          </fieldset>
+        }
+        <p>{{ answered() }} de {{ info.items.length }} preguntas respondidas</p>
+        <button [disabled]="busy() || answered() !== info.items.length" (click)="verify()">Enviar respuestas</button>
+      </details>
+    }
+  </section>
+  <section>
+    <h3>Diagnóstico de {{ profile.name }}</h3>
+    <p>La primera medición puede ser provisional. Para actualizar una medición ya calculada con el mismo catálogo, envía un nuevo intento del cuestionario.</p>
+    <button class="primary" [disabled]="busy() || !validLevels() || answered() > 0" (click)="diagnose()">Generar diagnóstico</button>
+  </section>
+} @else if (busy()) { <p role="status">Cargando evidencias…</p> }

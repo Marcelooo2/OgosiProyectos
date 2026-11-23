@@ -1,0 +1,86 @@
+@if (!token()) {
+  <main class="auth-shell">
+    <section class="auth-story">
+      <div class="brand"><span class="brand-mark">S</span><span>SkillGrow</span></div>
+      <div class="story-content">
+        <span class="eyebrow light">Tu siguiente paso profesional</span>
+        <h1>Convierte tus habilidades en una ruta de crecimiento clara.</h1>
+        <p>Descubre lo que ya dominas, identifica tus brechas y recibe una ruta formativa hecha para el perfil que quieres alcanzar.</p>
+      </div>
+      <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+    </section>
+    <section class="auth-panel"><div class="auth-card">
+      <span class="eyebrow">Bienvenido a SkillGrow</span><h2>{{ isRegister() ? 'Crea tu cuenta' : 'Continúa tu crecimiento' }}</h2>
+      <p class="muted">{{ isRegister() ? 'Completa tus datos para comenzar.' : 'Ingresa para consultar tu diagnóstico.' }}</p>
+      @if (error()) { <div class="alert error">{{ error() }}</div> }
+      @if (isRegister()) { <label>Nombre completo<input [(ngModel)]="fullName" autocomplete="name" placeholder="Ej. María Pérez"></label> }
+      <label>Correo electrónico<input [(ngModel)]="email" type="email" autocomplete="email" placeholder="tu@correo.com"></label>
+      <label>Contraseña<input [(ngModel)]="password" type="password" autocomplete="current-password"></label>
+      @if (isRegister() || error().includes('reactivar tu cuenta')) { <label class="check"><input [(ngModel)]="consent" type="checkbox"><span>Autorizo el uso de mis competencias, respuestas y avance para generar mi diagnóstico y mi ruta. Puedo retirar el consentimiento desde mi perfil. Versión del 23/11/2026.</span></label> }
+      <button class="btn primary wide" (click)="submitAuth()" [disabled]="loading()">{{ loading() ? 'Procesando…' : (isRegister() ? 'Crear cuenta' : 'Ingresar') }}</button>
+      <button class="text-btn" (click)="isRegister.set(!isRegister())">{{ isRegister() ? 'Ya tengo una cuenta' : 'Crear una cuenta nueva' }}</button>
+      @if (!isRegister() && localPreview) { <p class="demo-note">Cuenta de prueba local · postulante@skillgrow.pe · Demo123!</p> }
+    </div></section>
+  </main>
+} @else {
+  <div class="app-shell">
+    <aside class="sidebar" [class.open]="menuOpen()">
+      <div class="brand"><span class="brand-mark">S</span><span>SkillGrow</span></div>
+      <nav>
+        <button [class.active]="view()==='inicio'" (click)="navigate('inicio')"><span>⌂</span>Resumen</button>
+        <button [class.active]="view()==='perfil'" (click)="navigate('perfil')"><span>◎</span>Mi perfil</button>
+        <button [class.active]="view()==='diagnostico'" (click)="navigate('diagnostico')"><span>◫</span>Diagnóstico</button>
+        <button [class.active]="view()==='ruta'" (click)="navigate('ruta')"><span>◇</span>Ruta formativa</button>
+        <button [class.active]="view()==='seguimiento'" (click)="navigate('seguimiento')"><span>✓</span>Seguimiento</button>
+        @if (user()?.role === 'admin') { <button [class.active]="view()==='admin'" (click)="navigate('admin')"><span>⚙</span>Administración</button> }
+      </nav>
+      <div class="sidebar-foot"><small>SESIÓN ACTIVA</small><strong>{{ user()?.full_name }}</strong><span>{{ user()?.email }}</span><button class="text-btn" (click)="logout()">Cerrar sesión</button></div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar"><button class="menu" (click)="menuOpen.set(!menuOpen())">☰</button><div><span class="eyebrow">Plataforma de talento</span><h2>{{ view()==='inicio' ? 'Resumen' : view()==='perfil' ? 'Mi perfil profesional' : view()==='diagnostico' ? 'Diagnóstico de brechas' : view()==='ruta' ? 'Ruta formativa' : view()==='seguimiento' ? 'Seguimiento' : 'Administración' }}</h2></div><div class="avatar">{{ user()?.full_name?.charAt(0) }}</div></header>
+      @if (toast()) { <div class="alert success" (click)="toast.set('')">{{ toast() }} <b>×</b></div> }
+      @if (error()) { <div class="alert error" (click)="error.set('')">{{ error() }} <b>×</b></div> }
+
+      @if (view() === 'inicio') {
+        <section class="hero-card"><div><span class="eyebrow light">Hola, {{ user()?.full_name?.split(' ')?.[0] }}</span><h1>{{ assessment() ? 'Tu crecimiento ya está en marcha.' : 'Construyamos tu próximo paso.' }}</h1><p>{{ assessment() ? 'Revisa tu avance y mantén tu ruta al día con nueva evidencia.' : 'Completa tu perfil y obtén un diagnóstico personalizado en pocos minutos.' }}</p><button class="btn white" (click)="navigate(assessment() ? 'ruta' : 'perfil')">{{ assessment() ? 'Ver mi ruta' : 'Comenzar diagnóstico' }}</button></div><div class="fit-ring" [style.--score]="assessment()?.overall_fit ?? 0"><div><strong>{{ assessment()?.overall_fit == null ? '—' : assessment()?.overall_fit + '%' }}</strong><span>afinidad actual</span></div></div></section>
+        <section class="metric-grid"><article class="metric"><span class="metric-icon purple">◎</span><div><small>PERFIL OBJETIVO</small><strong>{{ assessment()?.profile ?? selectedProfile()?.name ?? 'Por definir' }}</strong></div></article><article class="metric"><span class="metric-icon green">✓</span><div><small>RECURSOS COMPLETADOS</small><strong>{{ completedCount() }} de {{ resources().length }}</strong></div></article><article class="metric"><span class="metric-icon orange">↗</span><div><small>PRIORIDAD ACTUAL</small><strong>{{ biggestGap()?.name ?? 'Completar perfil' }}</strong></div></article></section>
+        <section class="two-col"><article class="panel"><div class="panel-head"><div><span class="eyebrow">Próximos pasos</span><h3>Tu hoja de ruta</h3></div></div><div class="steps"><div class="step done"><span>1</span><div><strong>Cuenta y consentimiento</strong><small>Consentimiento registrado</small></div></div><div class="step" [class.done]="detected().length"><span>2</span><div><strong>Cargar CV y confirmar habilidades</strong><small>{{ detected().length ? detected().length + ' competencias encontradas' : 'Añade evidencia de tu experiencia' }}</small></div></div><div class="step" [class.done]="assessment()"><span>3</span><div><strong>Obtener diagnóstico</strong><small>{{ assessment() ? 'Diagnóstico disponible' : 'Compara tu perfil con el objetivo' }}</small></div></div><div class="step" [class.done]="completedCount()"><span>4</span><div><strong>Avanzar en tu ruta</strong><small>Completa recursos y vuelve a evaluarte</small></div></div></div></article><article class="panel insight"><span class="eyebrow">Recomendación</span><h3>{{ biggestGap() ? 'Fortalece ' + biggestGap()?.name : 'Empieza por tu evidencia' }}</h3><p>{{ biggestGap() ? 'Es la competencia con mayor distancia respecto al nivel solicitado. Tu ruta ya prioriza recursos para desarrollarla.' : 'Selecciona un perfil para guardar tu autodeclaración y responder el cuestionario.' }}</p><button class="text-btn" (click)="navigate(biggestGap() ? 'ruta' : 'perfil')">Ir al siguiente paso</button></article></section>
+      }
+
+      @if (view() === 'perfil') {
+        <section class="page-intro"><span class="eyebrow">Evidencias y objetivo</span><h1>Mi perfil profesional</h1><p>Selecciona un puesto, revisa tus competencias y responde las preguntas de evaluación.</p><button class="text-btn" (click)="revokeConsent()">Retirar mi consentimiento</button></section>
+        <section class="panel"><div class="panel-head"><div><span class="eyebrow">Perfil objetivo</span><h3>¿Hacia dónde quieres crecer?</h3></div></div><div class="profile-grid">@for (profile of profiles(); track profile.id) { <button class="profile-card" [class.selected]="selectedProfile()?.id===profile.id" (click)="chooseProfile(profile)"><span>{{ profile.seniority }}</span><h4>{{ profile.name }}</h4><p>{{ profile.description }}</p><small>{{ profile.requirements.length }} competencias clave</small></button> }</div></section>
+        @if (selectedProfile(); as selected) { <sg-evidence [api]="api" [token]="token()" [profile]="selected" (diagnosed)="diagnosed($event)" (mentionsChanged)="detected.set($event)" /> }
+      }
+
+      @if (view() === 'diagnostico') {
+        @if (assessment()) {
+          <section class="diagnosis-head"><div><span class="eyebrow light">{{ assessment()?.profile }}</span><h1>{{ assessment()?.overall_fit == null ? 'Aún falta evidencia de nivel' : 'Afinidad estimada: ' + assessment()?.overall_fit + '%' }}</h1>
+          @if (assessment()?.method === '5.5.2-v1') { <p>La autodeclaración aporta el 30 % y el cuestionario el 70 % cuando existen ambas fuentes. Una mención del CV documenta experiencia declarada. Cobertura del perfil: {{ assessment()?.coverage }} %. Catálogo v{{ assessment()?.catalog_version }}.</p>
+          @if (assessment()?.partial) { <strong>Resultado parcial. La evidencia cubre menos del 70 % del peso del perfil.</strong> } }
+          @else { <p>Registro histórico calculado con la metodología anterior. Puedes iniciar un cuestionario para generar un diagnóstico con las reglas actuales.</p> }</div></section>
+          <section class="panel"><div class="panel-head"><div><span class="eyebrow">Mapa competencial</span><h3>Evidencia frente al nivel requerido</h3></div><span class="legend"><i></i>Evidencia <i></i>Requerido</span></div><div class="score-list">@for (score of assessment()!.scores; track score.competency_id) { <article><div class="score-title"><div><strong>{{ score.name }}</strong><small>{{ score.category }}</small></div><span [class.good]="score.status==='Fuerte'" [class.warn]="score.status==='Moderada'">{{ score.status }}</span></div><div class="bar"><i class="required" [style.width.%]="score.required"></i><i class="evidence" [style.width.%]="score.evidence"></i></div><div class="bar-label"><span>{{ score.evidence == null ? 'Sin nivel estimado' : 'Nivel estimado ' + (score.evidence | number:'1.0-1') + '%' }}</span><span>Objetivo {{ score.required }}%</span></div>@if (score.sources; as s) { <small>CV: {{ s.cv == null ? 'sin mención confirmada' : score.cv_source || 'confirmado' }} · Autodeclaración: {{ s.self == null ? 'sin dato' : s.self/20 + '/5' }} · Cuestionario: {{ s.quiz == null ? 'sin intento' : s.quiz/20 + '/5' }} · Brecha: {{ score.gap == null ? 'sin calcular' : (score.gap | number:'1.0-1') + '%' }}</small> }</article> }</div></section>
+          <div class="callout"><div><span>◇</span><strong>¿Listo para cerrar tus brechas?</strong><p>Hemos priorizado recursos según la distancia y el peso de cada competencia.</p></div><button class="btn primary" (click)="navigate('ruta')">Ver ruta formativa</button></div>
+        } @else { <section class="empty"><span>◫</span><h2>Aún no tienes un diagnóstico</h2><p>Selecciona un perfil y completa tu autodeclaración para comenzar.</p><button class="btn primary" (click)="navigate('perfil')">Completar mi perfil</button></section> }
+      }
+
+      @if (view() === 'ruta') {
+        <section class="page-intro"><span class="eyebrow">Aprendizaje personalizado</span><h1>Una ruta corta, priorizada y accionable.</h1><p>Estos recursos responden a tus brechas actuales. Completar uno mejora tu progreso, no tu diagnóstico hasta que vuelvas a evaluarte.</p></section>
+        <label>Modalidad<select [(ngModel)]="modality" (ngModelChange)="loadRecommendations()"><option value="">Todas</option><option>En línea</option><option>Presencial</option><option>Híbrida</option></select></label>
+        @if (suggestions().length) { <section class="resource-grid">@for (item of suggestions(); track item.resource_id; let i = $index) { <article class="resource-card"><div class="resource-cover" [class.alt]="i % 3 === 1" [class.warm]="i % 3 === 2"><span>{{ item.type }}</span><b>{{ item.competency.charAt(0) }}</b></div><div class="resource-body"><span class="eyebrow">{{ item.competency }}</span><h3>{{ item.title }}</h3><p>{{ item.provider }}</p><p>Brecha relativa: {{ item.gap | number:'1.0-1' }} % · {{ item.modality }}</p><button class="btn primary" [disabled]="!!item.progress_id" (click)="enroll(item)">{{ item.progress_id ? "En tu ruta" : "Añadir a mi ruta" }}</button><a [href]="item.url" target="_blank" rel="noopener">Abrir recurso</a></div></article> }</section> } @else { <section class="empty"><h2>Sin sugerencias disponibles</h2><p>Para recomendar un recurso debe existir una brecha evaluable y un material vigente que coincida con el filtro.</p></section> }
+      }
+
+      @if (view() === 'seguimiento') {
+        <section class="page-intro"><span class="eyebrow">Progreso formativo</span><h1>El crecimiento se construye con evidencia.</h1><p>Registra el avance, completa tu ruta y solicita una nueva evaluación cuando tengas evidencia adicional.</p></section>
+        <section class="metric-grid"><article class="metric"><span class="metric-icon green">✓</span><div><small>COMPLETADOS</small><strong>{{ completedCount() }}</strong></div></article><article class="metric"><span class="metric-icon purple">◇</span><div><small>EN RUTA</small><strong>{{ resources().length }}</strong></div></article><article class="metric"><span class="metric-icon orange">◎</span><div><small>AFINIDAD</small><strong>{{ assessment()?.overall_fit == null ? '—' : assessment()?.overall_fit + '%' }}</strong></div></article></section>
+        <section class="panel"><div class="panel-head"><div><span class="eyebrow">Estado de la ruta</span><h3>Recursos asignados</h3></div></div><div class="tracking-list">@for (item of resources(); track item.progress_id) { <div><span class="check-dot" [class.done]="item.completed">{{ item.completed ? '✓' : '' }}</span><div><strong>{{ item.title }}</strong><small>{{ item.competency }} · {{ item.provider }}</small></div><div class="mini-progress"><i [style.width.%]="item.percent"></i></div><label>Avance<select [ngModel]="item.percent" (ngModelChange)="updateProgress(item, +$event)">@for (p of [0,25,50,75,100]; track p) { <option [value]="p">{{ p }}%</option> }</select></label></div> }</div></section>
+        <div class="callout"><div><span>↻</span><strong>¿Tienes nueva evidencia?</strong><p>Responde un nuevo cuestionario y genera otro diagnóstico para comparar tus resultados.</p></div><button class="btn primary" (click)="navigate('perfil')">Volver a evaluarme</button></div>
+      }
+
+      @if (view() === 'admin' && user()?.role === 'admin') {
+        <section class="page-intro"><span class="eyebrow">Administración</span><h1>Catálogos y publicaciones</h1></section>
+        <sg-catalog [api]="api" [token]="token()" (published)="loadProfiles()" />
+      }
+    </main>
+  </div>
+}
